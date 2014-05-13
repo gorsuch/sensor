@@ -17,6 +17,7 @@ import (
 
 type Config struct {
 	Location         string
+	Geolocation      string
 	ChecksUrl        string
 	MeasurementsUrl  string
 	MeasurementsUser string
@@ -34,6 +35,7 @@ type Measurement struct {
 	Check             Check   `json:"check"`
 	Id                string  `json:"id"`
 	Location          string  `json:"location"`
+	Geolocation       string  `json:"geolocation"`
 	T                 int     `json:"t"`
 	ExitStatus        int     `json:"exit_status"`
 	ConnectTime       float64 `json:"connect_time,omitempty"`
@@ -53,6 +55,7 @@ func (c *Check) Measure(config Config) Measurement {
 	m.Id = id.String()
 	m.Check = *c
 	m.Location = config.Location
+	m.Geolocation = config.Geolocation
 
 	easy := curl.EasyInit()
 	defer easy.Cleanup()
@@ -200,6 +203,7 @@ func main() {
 	flag.StringVar(&config.MeasurementsUrl, "measurements_url", "http://localhost:5000/measurements", "URL to POST measurements to")
 	flag.IntVar(&config.MeasurerCount, "measurer_count", 1, "number of measurers to run")
 	flag.IntVar(&config.RecorderCount, "recorder_count", 1, "number of recorders to run")
+	flag.StringVar(&config.Geolocation, "geolocation", "undefined", "geolocation (as GeoJSON)")
 	flag.Parse()
 
 	u, err := url.Parse(config.MeasurementsUrl)
