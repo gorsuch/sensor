@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/andelf/go-curl"
 	"github.com/nu7hatch/gouuid"
@@ -38,12 +39,13 @@ type Config struct {
 	ToPusherTimer      metrics.Timer
 	MeasurementCounter metrics.Counter
 	PushCounter        metrics.Counter
-	CheckPeriod		   time.Duration
+	CheckPeriod		    time.Duration
 }
 
 type Check struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
+	running 		bool
 }
 
 type Measurement struct {
@@ -63,6 +65,8 @@ type Measurement struct {
 }
 
 func (c *Check) Measure(config Config) Measurement {
+	progressLock
+	if inProgress
 	var m Measurement
 
 	id, _ := uuid.NewV4()
@@ -194,7 +198,7 @@ func getChecks(config Config) []Check {
 	return checks
 }
 
-func scheduler(config Config, check Check, toMeasurer chan Check) {
+func scheduler(config Config, check Check, toMeasurer chan<- Check) {
 	for {
 		config.ToMeasurerTimer.Time(func() { toMeasurer <- check })
 		time.Sleep(config.CheckPeriod * time.Millisecond)
@@ -265,7 +269,7 @@ func main() {
 			time.Millisecond,      // time unit
 		)
 	}
-	
+
 	if config.InfluxdbHost != "" &&
 	   config.InfluxdbDatabase != "" &&
 	   config.InfluxdbUser != "" &&
@@ -279,7 +283,7 @@ func main() {
 			Password: config.InfluxdbPassword,
 		})
 	}
-	
+
 	if config.LogStderr == true {
 		go metrics.Log(metrics.DefaultRegistry, 10e9, log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
 	}
